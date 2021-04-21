@@ -1,0 +1,27 @@
+Execute(Eval should evaluate atoms to it self):
+  AssertEqual 'hello', vlisp#Eval('hello')
+  AssertEqual 1, vlisp#Eval(1)
+  AssertEqual 1.0, vlisp#Eval(1.0)
+
+Execute(Eval should call list functions):
+  " (printf 'Hello %s' 'world') => 'Hello wolrd'
+  AssertEqual 'Hello world', vlisp#Eval([function('printf'), 'Hello %s', 'world'])
+
+Execute(Eval native lambda):
+  " This has no lisp syntax parallel but ensure that VimL
+  " lambda are treated as normal functions. Is more
+  " like an implication of the above test
+  AssertEqual 2, vlisp#Eval([{n->n*2}, 1])
+
+Execute(Eval if):
+  " (if (> 1 0) 'one' 'zero') => 'one'
+  AssertEqual 'one', vlisp#Eval([':if', [':>', 1, 0], 'one', 'zero'])
+
+Execute(Sum values):
+  " (+ 1 2 3 4) => 10
+  AssertEqual 10, vlisp#Eval([':+', 1, 2, 3, 4])
+
+Execute(Call lambda):
+  " Define and call a lambda
+  " ((lambda (a) (+ 1 a)) 1) => 1
+  AssertEqual 2, vlisp#Eval([[':lambda', ['a'], [':+', 1, ':a']], 1])
