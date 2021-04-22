@@ -5,20 +5,20 @@ function s:sum(...) abort
     let r = r + i
   endfor
   return r
-endfunc
+endfun
 
 function s:def_lambda(args, body) abort
   return {'type': 'lambda', 'args': a:args, 'body': a:body, 'environ': deepcopy(s:environ) }
-endfunc
+endfun
 
 " This is the global scope
 let s:global_env = {
-      \ '>': {a, b -> a > b},
-      \ 'if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
-      \ 'eval': {e -> s:eval(e)},
-      \ '+': function('s:sum'),
-      \ 'lambda': function('s:def_lambda'),
-      \ }
+  \ '>': {a, b -> a > b},
+  \ 'if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
+  \ 'eval': {e -> s:eval(e)},
+  \ '+': function('s:sum'),
+  \ 'lambda': function('s:def_lambda'),
+  \ }
 
 " This is the local scope stacked, the inner scope goes first
 " and outer scope goes last.
@@ -33,21 +33,17 @@ function s:build_args(argnames, argvalues)
     let i += 1
   endwhile
   return args
-endfunc
+endfun
 
 function s:call_lambda(lambda, args) abort
-  echom 'calling lambda'.string(a:lambda).' '.string(a:args).' '.string(localtime())
   let environ_bkp = copy(s:environ)
   let args = s:build_args(a:lambda.args, a:args)
   call extend(s:environ, a:lambda.environ)
   call insert(s:environ, args)
-  echom 'calling lambda with environ = '.string(s:environ)
   let result = s:eval(a:lambda.body)
   let s:environ = environ_bkp
-  echom 'lambda called'
   return result
-endfunc
-
+endfun
 
 function s:is_sym(expr) abort
   return type(a:expr) == v:t_string && a:expr[0] ==# ':'
@@ -55,19 +51,18 @@ endfun
 
 function s:is_func(expr) abort
   return type(a:expr) == v:t_func
-endfunc
+endfun
 
 function s:is_lambda(expr) abort
   return type(a:expr) == v:t_dict && a:expr.type ==# 'lambda'
-endfunc
+endfun
 
 function s:is_list(expr) abort
   return type(a:expr) == v:t_list
-endfunc
+endfun
 
 function s:lookup(sym) abort
   let sym = a:sym[1:]
-  echom 'looking up for '.sym.' with environ '.string(s:environ)
   for scope in s:environ
     if has_key(scope, sym)
       return scope[sym]
@@ -81,6 +76,16 @@ function s:lookup(sym) abort
   throw 'Undefined symbol '.a:sym
 endfun
 
+function s:is_redex(car) abort
+  if s:is_sym(a:car)
+    return v:true
+  elseif s:is_list(a:car)
+    return s:is_redex(a:car[0])
+  else
+    return v:false
+  endif
+endfun
+
 " Evaluate a list
 function s:eval_list(expr) abort
   if len(a:expr) == 0
@@ -89,20 +94,16 @@ function s:eval_list(expr) abort
   else
     let [Car; cdr] = a:expr
 
-    if s:is_sym(Car)
-      let Car = s:lookup(Car)
-    endif
+    " Always evaluate car
+    while s:is_redex(Car)
+      let Car = s:eval(Car)
+    endwhile
 
     if s:is_func(Car)
-      " Evaluate the arguments
-      " map(cdr, {arg -> vlisp#Eval(arg, )})
       return call(Car, cdr)
-    elseif s:is_list(Car)
-      return s:eval([s:eval(Car)] + cdr)
     elseif s:is_lambda(Car)
       return s:call_lambda(Car, cdr)
     else
-      " Not callable, just return it
       return a:expr
     endif
   endif
@@ -116,7 +117,6 @@ function s:eval_atom(expr) abort
 endfun
 
 function s:eval(expr) abort
-  echom 'evaluating '.string(a:expr)
   if s:is_list(a:expr)
     return s:eval_list(a:expr)
   else
