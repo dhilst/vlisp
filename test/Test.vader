@@ -36,3 +36,6 @@ Execute(Eval nested list must not halt):
   " Define and call a lambda
   " ((lambda (a) (+ 1 a)) 1) => 1
   AssertEqual [[1], 2], vlisp#Eval([[1], 2])
+
+Execute(Define module):
+  AssertEqual 1, vlisp#Eval([':module', 'a', 1])

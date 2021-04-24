@@ -39,6 +39,14 @@ function s:def_lambda(args, body) abort
   return {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': scope }
 endfun
 
+function s:def_module(modname, body) abort
+  if !has_key(s:modules, a:modname)
+    let s:current_module = a:modname
+    let s:modules[a:modname] = s:eval(a:body)
+  endif
+  return s:modules[a:modname]
+endfun
+
 " This is the global scope
 let s:global_scope = {
   \ '>': {a, b -> a > b},
@@ -46,7 +54,11 @@ let s:global_scope = {
   \ 'eval': {e -> s:eval(e)},
   \ '+': function('s:sum'),
   \ 'lambda': function('s:def_lambda'),
+  \ 'module': function('s:def_module'),
   \ }
+
+let s:current_module = v:false
+let s:modules = {}
 
 " This is the local scope stacked, the inner scope goes first
 " and outer scope goes last. A scope is a dictionary where symbols
