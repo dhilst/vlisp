@@ -7,12 +7,40 @@ function s:sum(...) abort
   return r
 endfun
 
+" Search for item in list, item is a sym and list a list of args
+" that are simple strings like ['a', 'b'] and sym are like ':a'
+" ':b' etc
+function s:in(item, list) abort
+  return index(a:list, a:item[1:]) != -1
+endfun
+
+function s:push_scope(item) abort
+  call add(s:scopes, a:item)
+endfun
+
+function s:pop_scope() abort
+  return remove(s:scopes, -1)
+endfun
+
+function s:local_scope(args, body, scope) abort
+  if s:is_list(a:body)
+    for element in a:body
+      call s:local_scope(a:args, element, a:scope)
+    endfor
+  elseif s:is_sym(a:body) && !s:in(a:body, a:args) && !s:in(a:body, keys(s:global_scope))
+   " not a bound variable, global are always available so they are not copied
+    let a:scope[a:body] = s:lookup(a:body)
+  endif
+endfun
+
 function s:def_lambda(args, body) abort
-  return {'type': 'lambda', 'args': a:args, 'body': a:body, 'environ': deepcopy(s:environ) }
+  let scope = {}
+  call s:local_scope(a:args, a:body, scope) " edits scope in place
+  return {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': scope }
 endfun
 
 " This is the global scope
-let s:global_env = {
+let s:global_scope = {
   \ '>': {a, b -> a > b},
   \ 'if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
   \ 'eval': {e -> s:eval(e)},
@@ -21,9 +49,12 @@ let s:global_env = {
   \ }
 
 " This is the local scope stacked, the inner scope goes first
-" and outer scope goes last.
-let s:environ = []
+" and outer scope goes last. A scope is a dictionary where symbols
+" point to values. Scopes are stacked in the lookup order, i.e, inner
+" scopes goes first.
+let s:scopes = []
 
+" Build args scope, to be pushed to s:scopes
 function s:build_args(argnames, argvalues)
   let args = {}
   let i = 0
@@ -36,12 +67,12 @@ function s:build_args(argnames, argvalues)
 endfun
 
 function s:call_lambda(lambda, args) abort
-  let environ_bkp = copy(s:environ)
   let args = s:build_args(a:lambda.args, a:args)
-  call extend(s:environ, a:lambda.environ)
-  call insert(s:environ, args)
+  call s:push_scope(a:lambda.scope)
+  call s:push_scope(args)
   let result = s:eval(a:lambda.body)
-  let s:environ = environ_bkp
+  call s:pop_scope()
+  call s:pop_scope()
   return result
 endfun
 
@@ -63,14 +94,14 @@ endfun
 
 function s:lookup(sym) abort
   let sym = a:sym[1:]
-  for scope in s:environ
+  for scope in s:scopes
     if has_key(scope, sym)
       return scope[sym]
     endif
   endfor
 
-  if has_key(s:global_env, sym)
-    return s:global_env[sym]
+  if has_key(s:global_scope, sym)
+    return s:global_scope[sym]
   endif
 
   throw 'Undefined symbol '.a:sym
