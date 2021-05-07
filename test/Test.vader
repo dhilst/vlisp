@@ -30,12 +30,17 @@ Execute(Sum values):
 Execute(Call lambda):
   " Define and call a lambda
   " ((lambda (a) (+ 1 a)) 1) => 1
-  AssertEqual 2, vlisp#Eval([[':lambda', ['a'], [':+', 1, ':a']], 1])
+  AssertEqual 2, vlisp#Eval([[':lambda', [':a'], [':+', 1, ':a']], 1])
 
 Execute(Eval nested list must not halt):
   " Define and call a lambda
   " ((lambda (a) (+ 1 a)) 1) => 1
   AssertEqual [[1], 2], vlisp#Eval([[1], 2])
 
-Execute(Define module):
-  AssertEqual 1, vlisp#Eval([':module', 'a', 1])
+Execute(Call nested lambda):
+  " (((lambda (x) (lambda (y) (+ x y))) 1) 2)
+  AssertEqual 3, vlisp#Eval(
+    \[[
+    \ [':lambda', [':x'],
+    \   [':lambda', [':y'],
+    \     [':+', ':x', ':y']]], 1], 2])

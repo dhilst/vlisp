@@ -11,7 +11,7 @@ endfun
 " that are simple strings like ['a', 'b'] and sym are like ':a'
 " ':b' etc
 function s:in(item, list) abort
-  return index(a:list, a:item[1:]) != -1
+  return index(a:list, a:item) != -1
 endfun
 
 function s:push_scope(item) abort
@@ -22,21 +22,42 @@ function s:pop_scope() abort
   return remove(s:scopes, -1)
 endfun
 
-function s:local_scope(args, body, scope) abort
-  if s:is_list(a:body)
-    for element in a:body
-      call s:local_scope(a:args, element, a:scope)
-    endfor
-  elseif s:is_sym(a:body) && !s:in(a:body, a:args) && !s:in(a:body, keys(s:global_scope))
-   " not a bound variable, global are always available so they are not copied
-    let a:scope[a:body] = s:lookup(a:body)
+function s:free_vars(expr, bound_vars, free_vars) abort
+  if s:is_list(a:expr)
+    let alen = len(a:expr)
+
+    " nil, just return
+    if alen == 0
+      return;
+
+    " unary list, lookup inside it
+    elseif alen == 1
+      call s:free_vars(a:expr[0], a:bound_vars, a:free_vars)
+
+    " Has at last car and cdr
+    else
+      let [car; cdr] = a:expr
+      if car ==# ':lambda'
+        let [args_, body] = cdr
+        call extend(a:bound_vars, args_)
+        call s:free_vars(body, a:bound_vars, a:free_vars)
+      else
+        for element in a:expr
+          call s:free_vars(element, a:bound_vars, a:free_vars)
+        endfor
+      endif
+    endif
+  elseif s:is_sym(a:expr)
+    if !s:in(a:expr, a:bound_vars) && !s:in(a:expr, keys(s:global_scope))
+      let a:free_vars[a:expr] = s:lookup(a:expr)
+    endif
   endif
 endfun
 
 function s:def_lambda(args, body) abort
-  let scope = {}
-  call s:local_scope(a:args, a:body, scope) " edits scope in place
-  return {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': scope }
+  let free_vars = {}
+  call s:free_vars(a:body, a:args, free_vars) " edits free_vars in place
+  return {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': free_vars }
 endfun
 
 function s:def_module(modname, body) abort
@@ -45,16 +66,15 @@ function s:def_module(modname, body) abort
     let s:modules[a:modname] = s:eval(a:body)
   endif
   return s:modules[a:modname]
-endfun
+endfunc
 
 " This is the global scope
 let s:global_scope = {
-  \ '>': {a, b -> a > b},
-  \ 'if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
-  \ 'eval': {e -> s:eval(e)},
-  \ '+': function('s:sum'),
-  \ 'lambda': function('s:def_lambda'),
-  \ 'module': function('s:def_module'),
+  \ ':>': {a, b -> a > b},
+  \ ':if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
+  \ ':eval': function('s:eval')
+  \ ':+': function('s:sum'),
+  \ ':lambda': function('s:def_lambda'),
   \ }
 
 let s:current_module = v:false
@@ -105,15 +125,14 @@ function s:is_list(expr) abort
 endfun
 
 function s:lookup(sym) abort
-  let sym = a:sym[1:]
   for scope in s:scopes
-    if has_key(scope, sym)
-      return scope[sym]
+    if has_key(scope, a:sym)
+      return scope[a:sym]
     endif
   endfor
 
-  if has_key(s:global_scope, sym)
-    return s:global_scope[sym]
+  if has_key(s:global_scope, a:sym)
+    return s:global_scope[a:sym]
   endif
 
   throw 'Undefined symbol '.a:sym
