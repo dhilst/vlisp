@@ -1,6 +1,6 @@
-" !I use => to mean 'reduces to' in the following comments and
-" also use the expected syntax in the comments to elude what
-" the expansions whould be before parsino
+#" !I use => to mean 'reduces to' in the following comments and
+#" also use the expected syntax in the comments to elude what
+#" the expansions whould be before parsino
 Execute(Eval should evaluate atoms to it self):
   " 'hello' => 'hello'
   AssertEqual 'hello', vlisp#Eval('hello')
@@ -31,6 +31,11 @@ Execute(Call lambda):
   " Define and call a lambda
   " ((lambda (a) (+ 1 a)) 1) => 1
   AssertEqual 2, vlisp#Eval([[':lambda', [':a'], [':+', 1, ':a']], 1])
+
+Execute(Call lazy):
+  " Define and call a lambda
+  " ((lambda (a) (+ 1 a)) 1) => 1
+  AssertEqual 2, vlisp#Eval([[':lazy', [':a'], [':+', 1, ':a']], 1])
 
 Execute(Eval nested list must not halt):
   " Define and call a lambda

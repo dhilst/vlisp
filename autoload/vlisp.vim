@@ -5,22 +5,22 @@ function s:sum(...) abort
     let r = r + i
   endfor
   return r
-endfun
+endfunc
 
 " Search for item in list, item is a sym and list a list of args
 " that are simple strings like ['a', 'b'] and sym are like ':a'
 " ':b' etc
 function s:in(item, list) abort
   return index(a:list, a:item) != -1
-endfun
+endfunc
 
 function s:push_scope(item) abort
   call add(s:scopes, a:item)
-endfun
+endfunc
 
 function s:pop_scope() abort
   return remove(s:scopes, -1)
-endfun
+endfunc
 
 function s:free_vars(expr, bound_vars, free_vars) abort
   if s:is_list(a:expr)
@@ -37,7 +37,7 @@ function s:free_vars(expr, bound_vars, free_vars) abort
     " Has at last car and cdr
     else
       let [car; cdr] = a:expr
-      if car ==# ':lambda'
+      if car ==# ':lambda' || car ==# ':lazy'
         let [args_, body] = cdr
         call extend(a:bound_vars, args_)
         call s:free_vars(body, a:bound_vars, a:free_vars)
@@ -52,13 +52,19 @@ function s:free_vars(expr, bound_vars, free_vars) abort
       let a:free_vars[a:expr] = s:lookup(a:expr)
     endif
   endif
-endfun
+endfunc
 
 function s:def_lambda(args, body) abort
   let free_vars = {}
   call s:free_vars(a:body, a:args, free_vars) " edits free_vars in place
   return {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': free_vars }
-endfun
+endfunc
+
+function s:def_lazy(args, body) abort
+  let free_vars = {}
+  call s:free_vars(a:body, a:args, free_vars) " edits free_vars in place
+  return {'type': 'lazy', 'args': a:args, 'body': a:body, 'scope': free_vars }
+endfunc
 
 function s:def_module(modname, body) abort
   if !has_key(s:modules, a:modname)
@@ -72,9 +78,10 @@ endfunc
 let s:global_scope = {
   \ ':>': {a, b -> a > b},
   \ ':if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
-  \ ':eval': function('s:eval')
+  \ ':eval': function('s:eval'),
   \ ':+': function('s:sum'),
   \ ':lambda': function('s:def_lambda'),
+  \ ':lazy': function('s:def_lazy'),
   \ }
 
 let s:current_module = v:false
@@ -86,8 +93,9 @@ let s:modules = {}
 " scopes goes first.
 let s:scopes = []
 
+" ((lambda (x) ...) 1) => { x: 1 }
 " Build args scope, to be pushed to s:scopes
-function s:build_args(argnames, argvalues)
+function s:build_args_lazy(argnames, argvalues)
   let args = {}
   let i = 0
   let max = len(a:argvalues)
@@ -96,38 +104,65 @@ function s:build_args(argnames, argvalues)
     let i += 1
   endwhile
   return args
-endfun
+endfunc
 
-function s:call_lambda(lambda, args) abort
-  let args = s:build_args(a:lambda.args, a:args)
+function s:build_args_strict(argnames, argvalues)
+  let args = {}
+  let i = 0
+  let max = len(a:argvalues)
+  while i < max
+    let args[a:argnames[i]] = s:eval(a:argvalues[i])
+    let i += 1
+  endwhile
+  return args
+endfunc
+
+function s:call_lazy(lambda, args) abort
+  let args = s:build_args_lazy(a:lambda.args, a:args)
   call s:push_scope(a:lambda.scope)
   call s:push_scope(args)
   let result = s:eval(a:lambda.body)
   call s:pop_scope()
   call s:pop_scope()
   return result
-endfun
+endfunc
+
+function s:call_lambda(lambda, args) abort
+  let args = s:build_args_strict(a:lambda.args, a:args)
+  call s:push_scope(a:lambda.scope)
+  call s:push_scope(args)
+  "let args = map(a:args, {e -> s:eval(e)})
+  let result = s:eval(a:lambda.body)
+  call s:pop_scope()
+  call s:pop_scope()
+  return result
+endfunc
 
 function s:is_sym(expr) abort
   return type(a:expr) == v:t_string && a:expr[0] ==# ':'
-endfun
+endfunc
 
 function s:is_func(expr) abort
   return type(a:expr) == v:t_func
-endfun
+endfunc
 
 function s:is_lambda(expr) abort
   return type(a:expr) == v:t_dict && a:expr.type ==# 'lambda'
-endfun
+endfunc
+
+function s:is_lazy(expr) abort
+  return type(a:expr) == v:t_dict && a:expr.type ==# 'lazy'
+endfunc
 
 function s:is_list(expr) abort
   return type(a:expr) == v:t_list
-endfun
+endfunc
 
 function s:lookup(sym) abort
   for scope in s:scopes
     if has_key(scope, a:sym)
-      return scope[a:sym]
+      let result = scope[a:sym]
+      return result
     endif
   endfor
 
@@ -136,7 +171,7 @@ function s:lookup(sym) abort
   endif
 
   throw 'Undefined symbol '.a:sym
-endfun
+endfunc
 
 function s:is_redex(car) abort
   if s:is_sym(a:car)
@@ -146,7 +181,7 @@ function s:is_redex(car) abort
   else
     return v:false
   endif
-endfun
+endfunc
 
 " Evaluate a list
 function s:eval_list(expr) abort
@@ -163,20 +198,22 @@ function s:eval_list(expr) abort
 
     if s:is_func(Car)
       return call(Car, cdr)
+    elseif s:is_lazy(Car)
+      return s:call_lazy(Car, cdr)
     elseif s:is_lambda(Car)
       return s:call_lambda(Car, cdr)
     else
       return a:expr
     endif
   endif
-endfun
+endfunc
 
 function s:eval_atom(expr) abort
   if s:is_sym(a:expr)
     return s:lookup(a:expr)
   endif
   return a:expr
-endfun
+endfunc
 
 function s:eval(expr) abort
   if s:is_list(a:expr)
@@ -184,8 +221,8 @@ function s:eval(expr) abort
   else
     return s:eval_atom(a:expr)
   endif
-endfun
+endfunc
 
 function vlisp#Eval(expr) abort
   return s:eval(a:expr)
-endfun
+endfunc
