@@ -49,3 +49,9 @@ Execute(Call nested lambda):
     \ [':lambda', [':x'],
     \   [':lambda', [':y'],
     \     [':+', ':x', ':y']]], 1], 2])
+
+Execute(Define):
+  " (define foo (lambda (x) (+ x 1)))
+  call vlisp#Eval([':define', ':foo', [':lambda', [':x'], [':+', ':x', 1]]])
+  " (foo 2) => 3
+  AssertEqual 3, vlisp#Eval([':foo', 2])

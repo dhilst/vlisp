@@ -66,12 +66,8 @@ function s:def_lazy(args, body) abort
   return {'type': 'lazy', 'args': a:args, 'body': a:body, 'scope': free_vars }
 endfunc
 
-function s:def_module(modname, body) abort
-  if !has_key(s:modules, a:modname)
-    let s:current_module = a:modname
-    let s:modules[a:modname] = s:eval(a:body)
-  endif
-  return s:modules[a:modname]
+function s:define(sym, body) abort
+  call s:push_scope({ a:sym: a:body })
 endfunc
 
 " This is the global scope
@@ -82,6 +78,7 @@ let s:global_scope = {
   \ ':+': function('s:sum'),
   \ ':lambda': function('s:def_lambda'),
   \ ':lazy': function('s:def_lazy'),
+  \ ':define': function('s:define'),
   \ }
 
 let s:current_module = v:false
