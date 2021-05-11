@@ -1,0 +1,9 @@
+#" !I use => to mean 'reduces to' in the following comments and
+#" also use the expected syntax in the comments to elude what
+#" the expansions whould be before parsino
+Execute(Test Lex):
+  " 'hello' => 'hello'
+  AssertEqual 'int', lex#Lex('1', 0).type
+  AssertEqual 'float', lex#Lex('1.0', 0).type
+  AssertEqual 'string', lex#Lex('"foo"', 0).type
+  AssertEqual 'atom', lex#Lex('foo', 0).type

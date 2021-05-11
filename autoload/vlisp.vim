@@ -1,6 +1,6 @@
 function s:sum(...) abort
   let r = 0
-  for i in a:000
+  for i in a:000 " <- varags
     let i = s:eval(i)
     let r = r + i
   endfor
@@ -189,7 +189,7 @@ function s:eval_list(expr) abort
     let [Car; cdr] = a:expr
 
     " Always evaluate car
-    while s:is_redex(Car)
+    while s:is_redex(Car) " reducible expression
       let Car = s:eval(Car)
     endwhile
 
