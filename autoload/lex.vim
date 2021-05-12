@@ -6,6 +6,7 @@ function lex#IgnoreWhitespace(input, start, line) abort
     if a:input[i] ==# ' ' || a:input[i] ==# "\t"
       let i += 1
     elseif a:input[i] ==# "\n"
+      let i += 1
       let line += 1
     else
       break
@@ -59,26 +60,23 @@ function lex#Lex(input, start, line) abort
   endif
 
   if a:input[0] ==# '"'
-    return lex#ReadString(a:input, startpos, a:line)
+    return lex#ReadString(a:input, startpos, line)
   endif
 
-  "let result = matchstr(input, '^[^ ()]\+')
-  return lex#ReadAtom(a:input, startpos, a:line)
+  return lex#ReadAtom(a:input, startpos, line)
 endfunc
 
 
 function lex#ReadAtom(input, startpos, line)
-  echom "input ".a:input
   let i = a:startpos
   let inputLength = len(a:input)
   let line = a:line
 
   while v:true
-    if a:input[i] ==# " " || a:input[i] ==# "(" || a:input[i] ==# ")" || a:input ==# "\n" || a:input ==# "\t" || i >= inputLength
-      echom 'startpos '.a:startpos
+    if a:input[i] ==# " " || a:input[i] ==# "(" || a:input[i] ==# ")" || a:input[i] ==# "\n" || a:input[i] ==# "\t" || i >= inputLength
       return {
         \ 'type': 'atom',
-        \ 'value': a:input[a:startpos : i],
+        \ 'value': a:input[a:startpos : i - 1],
         \ 'startpos': a:startpos,
         \ 'endpos': i,
         \ 'line': line

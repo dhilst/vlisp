@@ -4,21 +4,29 @@ Execute(Test ReadAtom):
   AssertEqual 0, result.startpos
   AssertEqual 3, result.endpos
 
+  " Some common atom in Lisp
+  AssertEqual 'foo->bar', lex#ReadAtom('foo->bar', 0, 1).value
+  AssertEqual 'predicate?', lex#ReadAtom('predicate?', 0, 1).value
+  AssertEqual 'sideeffect!', lex#ReadAtom('sideeffect!', 0, 1).value
+  AssertEqual '+', lex#ReadAtom('+', 0, 1).value
+  AssertEqual '*', lex#ReadAtom('*', 0, 1).value
+  AssertEqual '<', lex#ReadAtom('<', 0, 1).value
+
 "" !I use => to mean 'reduces to' in the following comments and
 "" also use the expected syntax in the comments to elude what
 "" the expansions whould be before parsino
-"Execute(Test Lex Simple):
-"  " 'hello' => 'hello'
-"  AssertEqual 'int', lex#Lex('1', 0, 0).type
-"  AssertEqual 'float', lex#Lex('1.0', 0, 0).type
-"  AssertEqual 'string', lex#Lex('"foo"', 0, 0).type
-"  AssertEqual 'atom', lex#Lex('foo', 0, 0).type
-"  AssertEqual 'LP', lex#Lex('(', 0, 0).type
-"  AssertEqual 'RP', lex#Lex(')', 0, 0).type
-"
-"Execute(Test Lex Simple):
-"  AssertEqual '"foo\""', lex#ReadString('"foo\""', 0, 0).value
-"
+Execute(Test Lex Simple):
+  " 'hello' => 'hello'
+  AssertEqual 'int', lex#Lex('1', 0, 0).type
+  AssertEqual 'float', lex#Lex('1.0', 0, 0).type
+  AssertEqual 'string', lex#Lex('"foo"', 0, 0).type
+  AssertEqual 'atom', lex#Lex('foo', 0, 0).type
+  AssertEqual 'LP', lex#Lex('(', 0, 0).type
+  AssertEqual 'RP', lex#Lex(')', 0, 0).type
+
+Execute(Test Lex Simple):
+  AssertEqual '"foo\""', lex#ReadString('"foo\""', 0, 0).value
+
 Execute(Test Lex list):
   " 'hello' => 'hello'
   let input = '(foo bar)'
@@ -31,27 +39,27 @@ Execute(Test Lex list):
   AssertEqual 'foo', result.value
   AssertEqual 4, result.endpos
 
-  "let result = lex#Lex(input, result.endpos, result.line)
-  "AssertEqual 'atom', result.type
-  "AssertEqual 'bar', result.value
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'atom', result.type
+  AssertEqual 'bar', result.value
 
-  "let result = lex#Lex(input, result.endpos, result.line)
-  "AssertEqual 'RP', result.type
-"
-"Execute(Test line breaking counter):
-"  " 'hello' => 'hello'
-"  let input = "(foo\nbar)"
-"  let result = lex#Lex(input, 0, 1)
-"  AssertEqual 'LP', result.type
-"
-"  let result = lex#Lex(input, result.endpos, result.line)
-"  AssertEqual 'atom', result.type
-"  AssertEqual 'foo', result.value
-"
-"  let result = lex#Lex(input, result.endpos, result.line)
-"  AssertEqual 'atom', result.type
-"  AssertEqual 'bar', result.value
-"  AssertEqual 2, result.line
-"
-"  let result = lex#Lex(input, result.endpos, result.line)
-"  AssertEqual 'RP', result.type
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'RP', result.type
+
+Execute(Test line breaking counter):
+  " 'hello' => 'hello'
+  let input = "(foo\nbar)"
+  let result = lex#Lex(input, 0, 1)
+  AssertEqual 'LP', result.type
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'atom', result.type
+  AssertEqual 'foo', result.value
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'atom', result.type
+  AssertEqual 'bar', result.value
+  AssertEqual 2, result.line
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'RP', result.type
