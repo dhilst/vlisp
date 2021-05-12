@@ -1,9 +1,28 @@
-#" !I use => to mean 'reduces to' in the following comments and
-#" also use the expected syntax in the comments to elude what
-#" the expansions whould be before parsino
-Execute(Test Lex):
+" !I use => to mean 'reduces to' in the following comments and
+" also use the expected syntax in the comments to elude what
+" the expansions whould be before parsino
+Execute(Test Lex Simple):
   " 'hello' => 'hello'
-  AssertEqual 'int', lex#Lex('1', 0).type
-  AssertEqual 'float', lex#Lex('1.0', 0).type
-  AssertEqual 'string', lex#Lex('"foo"', 0).type
-  AssertEqual 'atom', lex#Lex('foo', 0).type
+  AssertEqual 'int', lex#Lex('1', 0, 0).type
+  AssertEqual 'float', lex#Lex('1.0', 0, 0).type
+  AssertEqual 'string', lex#Lex('"foo"', 0, 0).type
+  AssertEqual 'atom', lex#Lex('foo', 0, 0).type
+  AssertEqual 'LP', lex#Lex('(', 0, 0).type
+  AssertEqual 'RP', lex#Lex(')', 0, 0).type
+
+Execute(Test Lex Simple):
+  AssertEqual '"foo\""', lex#ReadString('"foo\""', 0, 0).value
+
+Execute(Text Lex Sequence):
+  " 'hello' => 'hello'
+  let input = '(foo bar)'
+  let result = lex#Lex(input, 0, 0)
+  AssertEqual 'LP', result.type
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'atom', result.type
+  AssertEqual 'foo', result.value
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'atom', result.type
+  AssertEqual 'bar', result.value
