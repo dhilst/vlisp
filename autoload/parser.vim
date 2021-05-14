@@ -15,7 +15,7 @@ function s:in(el, list) abort
 endfunc
 
 function parser#Parse(tokens) abort
-  let _buffer = ''
+  let _buffer = '['
   for token in a:tokens
     if len(_buffer) > 1 && _buffer[-1:-1] !=# '['
       let _buffer .= ', '
@@ -33,6 +33,8 @@ function parser#Parse(tokens) abort
       let _buffer .= ']'
     endif
   endfor
+
+  let _buffer .= ']'
   return eval(_buffer)
 endfunc
 

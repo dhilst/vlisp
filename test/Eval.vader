@@ -55,3 +55,21 @@ Execute(Define):
   call vlisp#Eval([':define', ':foo', [':lambda', [':x'], [':+', ':x', 1]]])
   " (foo 2) => 3
   AssertEqual 3, vlisp#Eval([':foo', 2])
+
+Execute(Test EvalMultiple):
+  let result = vlisp#EvalMultiple(
+    \ [
+    \   [':define', ':foo', [':lambda', [':x'], [':+', ':x', 1]]],
+    \   [':foo', 1]
+    \ ]
+    \ )
+
+  AssertEqual 2, result
+
+Execute(Test LoadScript):
+  let text = '
+  \(define foo (lambda (x) (+ 1 x)))
+  \
+  \(foo 1)'
+
+  AssertEqual 2, vlisp#LoadScript(text)

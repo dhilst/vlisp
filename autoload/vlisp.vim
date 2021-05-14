@@ -1,12 +1,42 @@
-function s:sum(...) abort
-  let r = 0
-  for i in a:000 " <- varags
-    let i = s:eval(i)
-    let r = r + i
-  endfor
-  return r
+" Evaluate a list
+function s:eval_list(expr) abort
+  if len(a:expr) == 0
+    " Treat this is nil
+    return a:expr
+  else
+    let [Car; cdr] = a:expr
+
+    " Always evaluate car
+    while s:is_redex(Car) " reducible expression
+      let Car = s:eval(Car)
+    endwhile
+
+    if s:is_func(Car)
+      return call(Car, cdr)
+    elseif s:is_lazy(Car)
+      return s:call_lazy(Car, cdr)
+    elseif s:is_lambda(Car)
+      return s:call_lambda(Car, cdr)
+    else
+      return a:expr
+    endif
+  endif
 endfunc
 
+function s:eval_atom(expr) abort
+  if s:is_sym(a:expr)
+    return s:lookup(a:expr)
+  endif
+  return a:expr
+endfunc
+
+function s:eval(expr) abort
+  if s:is_list(a:expr)
+    return s:eval_list(a:expr)
+  else
+    return s:eval_atom(a:expr)
+  endif
+endfunc
 " Search for item in list, item is a sym and list a list of args
 " that are simple strings like ['a', 'b'] and sym are like ':a'
 " ':b' etc
@@ -52,6 +82,15 @@ function s:free_vars(expr, bound_vars, free_vars) abort
       let a:free_vars[a:expr] = s:lookup(a:expr)
     endif
   endif
+endfunc
+
+function s:sum(...) abort
+  let r = 0
+  for i in a:000 " <- varags
+    let i = s:eval(i)
+    let r = r + i
+  endfor
+  return r
 endfunc
 
 function s:def_lambda(args, body) abort
@@ -185,48 +224,17 @@ function s:is_redex(car) abort
   endif
 endfunc
 
-" Evaluate a list
-function s:eval_list(expr) abort
-  if len(a:expr) == 0
-    " Treat this is nil
-    return a:expr
-  else
-    let [Car; cdr] = a:expr
-
-    " Always evaluate car
-    while s:is_redex(Car) " reducible expression
-      let Car = s:eval(Car)
-    endwhile
-
-    if s:is_func(Car)
-      return call(Car, cdr)
-    elseif s:is_lazy(Car)
-      return s:call_lazy(Car, cdr)
-    elseif s:is_lambda(Car)
-      return s:call_lambda(Car, cdr)
-    else
-      return a:expr
-    endif
-  endif
-endfunc
-
-function s:eval_atom(expr) abort
-  if s:is_sym(a:expr)
-    return s:lookup(a:expr)
-  endif
-  return a:expr
-endfunc
-
-function s:eval(expr) abort
-  if s:is_list(a:expr)
-    return s:eval_list(a:expr)
-  else
-    return s:eval_atom(a:expr)
-  endif
-endfunc
-
 function vlisp#Eval(expr) abort
   return s:eval(a:expr)
+endfunc
+
+function vlisp#EvalMultiple(exprs) abort
+  if len(a:exprs) > 1
+    for expr in a:exprs[:-1]
+      call s:eval(expr)
+    endfor
+  endif
+  return s:eval(a:exprs[-1])
 endfunc
 
 function s:readallines(file) abort
@@ -234,8 +242,11 @@ function s:readallines(file) abort
 endfunc
 
 function vlisp#LoadFile(file) abort
-  let tree = parser#Parse(lex#All(s:readallines(a:file)))
-  return vlisp#Eval(tree)
+  return vlisp#LoadScript(s:readallines(a:file)))
+endfunc
+
+function vlisp#LoadScript(string) abort
+  return vlisp#EvalMultiple(parser#Parse(lex#All(a:string)))
 endfunc
 
 command! -nargs=1 VLispLoad :call vlisp#LoadFile(<args>)
