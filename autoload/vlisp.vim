@@ -70,6 +70,10 @@ function s:define(sym, body) abort
   call s:push_scope({ a:sym: a:body })
 endfunc
 
+function s:echo(msg) abort
+  echo a:msg
+endfunc
+
 " This is the global scope
 let s:global_scope = {
   \ ':>': {a, b -> a > b},
@@ -79,6 +83,7 @@ let s:global_scope = {
   \ ':lambda': function('s:def_lambda'),
   \ ':lazy': function('s:def_lazy'),
   \ ':define': function('s:define'),
+  \ ':echo': function('s:echo'),
   \ }
 
 let s:current_module = v:false
@@ -223,3 +228,14 @@ endfunc
 function vlisp#Eval(expr) abort
   return s:eval(a:expr)
 endfunc
+
+function s:readallines(file) abort
+  return join(readfile(a:file), "\n")
+endfunc
+
+function vlisp#LoadFile(file) abort
+  let tree = parser#Parse(lex#All(s:readallines(a:file)))
+  return vlisp#Eval(tree)
+endfunc
+
+command! -nargs=1 VLispLoad :call vlisp#LoadFile(<args>)

@@ -22,6 +22,7 @@ function lex#Lex(input, start, line) abort
   if a:input[startpos] ==# '('
     return {
       \ 'type': 'LP',
+      \ 'value': '(',
       \ 'startpos': startpos,
       \ 'endpos': startpos + 1,
       \ 'line': line,
@@ -29,6 +30,7 @@ function lex#Lex(input, start, line) abort
   elseif a:input[startpos] ==# ')'
     return {
       \ 'type': 'RP',
+      \ 'value': ')',
       \ 'startpos': startpos,
       \ 'endpos': startpos + 1,
       \ 'line': line,
@@ -52,14 +54,14 @@ function lex#Lex(input, start, line) abort
   if !empty(result)
     return {
       \ 'type': 'int',
-      \ 'value': str2float(result),
+      \ 'value': str2nr(result),
       \ 'startpos': startpos,
       \ 'endpos': startpos + len(result),
       \ 'line': line,
       \ }
   endif
 
-  if a:input[0] ==# '"'
+  if a:input[startpos] ==# '"'
     return lex#ReadString(a:input, startpos, line)
   endif
 
@@ -75,8 +77,8 @@ function lex#ReadAtom(input, startpos, line)
   while v:true
     if a:input[i] ==# " " || a:input[i] ==# "(" || a:input[i] ==# ")" || a:input[i] ==# "\n" || a:input[i] ==# "\t" || i >= inputLength
       return {
-        \ 'type': 'atom',
-        \ 'value': a:input[a:startpos : i - 1],
+        \ 'type': 'sym',
+        \ 'value': ':'. a:input[a:startpos : i - 1],
         \ 'startpos': a:startpos,
         \ 'endpos': i,
         \ 'line': line
@@ -88,7 +90,8 @@ function lex#ReadAtom(input, startpos, line)
 endfunc
 
 function lex#ReadString(input, startpos, line)
-  let i = 1
+  let start = a:startpos + 1
+  let i = start
   let l = len(a:input)
   let escaping = v:false
 
@@ -97,16 +100,32 @@ function lex#ReadString(input, startpos, line)
       throw 'syntax error, EOF while expecting "'
     endif
 
+
     if a:input[i] ==# '"' && !escaping
+      let result = a:input[start:i-1]
       return {
             \ 'type': 'string',
-            \ 'value': a:input[0:i+1],
+            \ 'value': result,
             \ 'startpos': a:startpos,
-            \ 'endpos': i,
+            \ 'endpos': i + 1,
             \ 'line': a:line,
             \ }
     endif
     let scaping = a:input[i] ==# '\'
     let i += 1
   endwhile
+endfunc
+
+function lex#All(text) abort
+  let max = len(a:text)
+  let line = 1
+  let end = 0
+  let tokens = []
+  while end < max
+    let token = lex#Lex(a:text, end, line)
+    let line = token.line
+    let end = token.endpos
+    call add(tokens, token)
+  endwhile
+  return tokens
 endfunc
