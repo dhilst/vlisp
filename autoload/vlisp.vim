@@ -12,7 +12,7 @@ function s:eval_list(expr) abort
     endwhile
 
     if s:is_func(Car)
-      return call(Car, cdr)
+      return s:call_func(Car, cdr)
     elseif s:is_lazy(Car)
       return s:call_lazy(Car, cdr)
     elseif s:is_lambda(Car)
@@ -115,35 +115,40 @@ endfunc
 
 function s:defrec(sym, body) abort
   call s:push_scope({ a:sym: 'RECURSIVE_DEFINITION_SENTINEL' })
-  call s:push_scope({ a:sym: s:eval(a:body) })
+  let result = s:eval(a:body)
+  call s:pop_scope()
+  call s:push_scope({ a:sym: result })
 endfunc
 
 function s:echo(msg) abort
   echo a:msg
 endfunc
 
-function s:reduce(acc, fn, args) abort
-  let acc = a:acc
-  for item in a:args
-    let acc = a:fn(acc, s:eval(item))
-  endfor
+function s:reduce(fn, args) abort
+  echom 'reduce args '.string(a:args)
+  let acc = a:args[0]
+  if len(a:args) > 1
+    for item in a:args[1:]
+      let acc = a:fn(acc, s:eval(item))
+    endfor
+  endif
   return acc
 endfunc
 
 " This is the global scope
 let s:global_scope = {
-  \ ':=': {a, b -> a == b},
-  \ ':!=': {a, b -> a != b},
-  \ ':>': {a, b -> a > b},
-  \ ':>=': {a, b -> a < b},
-  \ ':<': {a, b -> a < b},
-  \ ':<=': {a, b -> a < b},
+  \ ':=': {a, b -> s:eval(a) == s:eval(b)},
+  \ ':!=': {a, b -> s:eval(a) != s:eval(b)},
+  \ ':>': {a, b -> s:eval(a) > s:eval(b)},
+  \ ':>=': {a, b -> s:eval(a) < s:eval(b)},
+  \ ':<': {a, b -> s:eval(a) < s:eval(b)},
+  \ ':<=': {a, b -> s:eval(a) < s:eval(b)},
   \ ':if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
   \ ':eval': function('s:eval'),
-  \ ':+': {... -> s:reduce(0, {acc, arg -> acc + arg}, a:000)},
-  \ ':-': {... -> s:reduce(0, {acc, arg -> acc - arg}, a:000)},
-  \ ':*': {... -> s:reduce(1, {acc, arg -> acc * arg}, a:000)},
-  \ ':/': {... -> s:reduce(1, {acc, arg -> arg / acc}, a:000)},
+  \ ':+': {... -> s:reduce({acc, arg -> s:eval(acc) + s:eval(arg)}, a:000)},
+  \ ':-': {... -> s:reduce({acc, arg -> s:eval(acc) - s:eval(arg)}, a:000)},
+  \ ':*': {... -> s:reduce({acc, arg -> s:eval(acc) * s:eval(arg)}, a:000)},
+  \ ':/': {... -> s:reduce({acc, arg -> s:eval(arg) / s:eval(acc)}, a:000)},
   \ ':lambda': function('s:def_lambda'),
   \ ':lazy': function('s:def_lazy'),
   \ ':define': function('s:define'),
@@ -191,11 +196,15 @@ function s:call_lazy(lambda, args) abort
   return result
 endfunc
 
+function s:call_func(Func, args) abort
+  return call(a:Func, a:args)
+endfunc
+
 function s:call_lambda(lambda, args) abort
   let args = s:build_args_strict(a:lambda.args, a:args)
+  echom 'call_lambda args '.string(args)
   call s:push_scope(a:lambda.scope)
   call s:push_scope(args)
-  "let args = map(a:args, {e -> s:eval(e)})
   let result = s:eval(a:lambda.body)
   call s:pop_scope()
   call s:pop_scope()
