@@ -30,12 +30,19 @@ function s:eval_atom(expr) abort
   return a:expr
 endfunc
 
+let s:deep = 0 " how nested we are in the expressions
+               " used only for debugging
 function s:eval(expr) abort
+  let s:deep += 1
+  let Result = 0
   if s:is_list(a:expr)
-    return s:eval_list(a:expr)
+    let Result = s:eval_list(a:expr)
   else
-    return s:eval_atom(a:expr)
+    let Result = s:eval_atom(a:expr)
   endif
+
+  let s:deep -= 1
+  return Result
 endfunc
 " Search for item in list, item is a sym and list a list of args
 " that are simple strings like ['a', 'b'] and sym are like ':a'
@@ -84,19 +91,16 @@ function s:free_vars(expr, bound_vars, free_vars) abort
   endif
 endfunc
 
-function s:sum(...) abort
-  let r = 0
-  for i in a:000 " <- varags
-    let i = s:eval(i)
-    let r = r + i
-  endfor
-  return r
-endfunc
-
 function s:def_lambda(args, body) abort
   let free_vars = {}
   call s:free_vars(a:body, a:args, free_vars) " edits free_vars in place
-  return {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': free_vars }
+  let lambda = {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': free_vars }
+  for [k, v] in items(free_vars)
+    if v ==# 'RECURSIVE_DEFINITION_SENTINEL'
+      let free_vars[k] = lambda
+    endif
+  endfor
+  return lambda
 endfunc
 
 function s:def_lazy(args, body) abort
@@ -106,27 +110,46 @@ function s:def_lazy(args, body) abort
 endfunc
 
 function s:define(sym, body) abort
-  call s:push_scope({ a:sym: a:body })
+  call s:push_scope({ a:sym: s:eval(a:body) })
+endfunc
+
+function s:defrec(sym, body) abort
+  call s:push_scope({ a:sym: 'RECURSIVE_DEFINITION_SENTINEL' })
+  call s:push_scope({ a:sym: s:eval(a:body) })
 endfunc
 
 function s:echo(msg) abort
   echo a:msg
 endfunc
 
+function s:reduce(acc, fn, args) abort
+  let acc = a:acc
+  for item in a:args
+    let acc = a:fn(acc, s:eval(item))
+  endfor
+  return acc
+endfunc
+
 " This is the global scope
 let s:global_scope = {
+  \ ':=': {a, b -> a == b},
+  \ ':!=': {a, b -> a != b},
   \ ':>': {a, b -> a > b},
+  \ ':>=': {a, b -> a < b},
+  \ ':<': {a, b -> a < b},
+  \ ':<=': {a, b -> a < b},
   \ ':if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
   \ ':eval': function('s:eval'),
-  \ ':+': function('s:sum'),
+  \ ':+': {... -> s:reduce(0, {acc, arg -> acc + arg}, a:000)},
+  \ ':-': {... -> s:reduce(0, {acc, arg -> acc - arg}, a:000)},
+  \ ':*': {... -> s:reduce(1, {acc, arg -> acc * arg}, a:000)},
+  \ ':/': {... -> s:reduce(1, {acc, arg -> arg / acc}, a:000)},
   \ ':lambda': function('s:def_lambda'),
   \ ':lazy': function('s:def_lazy'),
   \ ':define': function('s:define'),
+  \ ':defrec': function('s:defrec'),
   \ ':echo': function('s:echo'),
   \ }
-
-let s:current_module = v:false
-let s:modules = {}
 
 " This is the local scope stacked, the inner scope goes first
 " and outer scope goes last. A scope is a dictionary where symbols
@@ -230,7 +253,7 @@ endfunc
 
 function vlisp#EvalMultiple(exprs) abort
   if len(a:exprs) > 1
-    for expr in a:exprs[:-1]
+    for expr in a:exprs[:-2]
       call s:eval(expr)
     endfor
   endif
@@ -247,6 +270,11 @@ endfunc
 
 function vlisp#LoadScript(string) abort
   return vlisp#EvalMultiple(parser#Parse(lex#All(a:string)))
+endfunc
+
+function vlisp#Reset() abort
+  let s:scopes = []
+  let s:deep = 0
 endfunc
 
 command! -nargs=1 VLispLoad :call vlisp#LoadFile(<args>)

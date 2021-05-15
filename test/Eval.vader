@@ -1,75 +1,87 @@
-#" !I use => to mean 'reduces to' in the following comments and
-#" also use the expected syntax in the comments to elude what
-#" the expansions whould be before parsino
-Execute(Eval should evaluate atoms to it self):
-  " 'hello' => 'hello'
-  AssertEqual 'hello', vlisp#Eval('hello')
-  " 1 => 1
-  AssertEqual 1, vlisp#Eval(1)
-  " 1.0 => 1.0
-  AssertEqual 1.0, vlisp#Eval(1.0)
+# #" !I use => to mean 'reduces to' in the following comments and
+# #" also use the expected syntax in the comments to elude what
+# #" the expansions whould be before parsino
+# Execute(Eval should evaluate atoms to it self):
+#   " 'hello' => 'hello'
+#   AssertEqual 'hello', vlisp#Eval('hello')
+#   " 1 => 1
+#   AssertEqual 1, vlisp#Eval(1)
+#   " 1.0 => 1.0
+#   AssertEqual 1.0, vlisp#Eval(1.0)
+#
+# Execute(Eval should call list functions):
+#   " (printf 'Hello %s' 'world') => 'Hello wolrd'
+#   AssertEqual 'Hello world', vlisp#Eval([function('printf'), 'Hello %s', 'world'])
+#
+# Execute(Eval native lambda):
+#   " This has no lisp syntax parallel but ensure that VimL
+#   " lambda are treated as normal functions. Is more
+#   " like an implication of the above test
+#   AssertEqual 2, vlisp#Eval([{n->n*2}, 1])
+#
+# Execute(Eval if):
+#   " (if (> 1 0) 'one' 'zero') => 'one'
+#   AssertEqual 'one', vlisp#Eval([':if', [':>', 1, 0], 'one', 'zero'])
+#
+# Execute(Sum values):
+#   " (+ 1 2 3 4) => 10
+#   AssertEqual 10, vlisp#Eval([':+', 1, 2, 3, 4])
+#
+# Execute(Call lambda):
+#   " Define and call a lambda
+#   " ((lambda (a) (+ 1 a)) 1) => 1
+#   AssertEqual 2, vlisp#Eval([[':lambda', [':a'], [':+', 1, ':a']], 1])
+#
+# Execute(Call lazy):
+#   " Define and call a lambda
+#   " ((lambda (a) (+ 1 a)) 1) => 1
+#   AssertEqual 2, vlisp#Eval([[':lazy', [':a'], [':+', 1, ':a']], 1])
+#
+# Execute(Eval nested list must not halt):
+#   " Define and call a lambda
+#   " ((lambda (a) (+ 1 a)) 1) => 1
+#   AssertEqual [[1], 2], vlisp#Eval([[1], 2])
+#
+"Execute(Call nested lambda):
+"  " (((lambda (x) (lambda (y) (+ x y))) 1) 2)
+"  AssertEqual 3, vlisp#Eval(
+"    \[[
+"    \ [':lambda', [':x'],
+"    \   [':lambda', [':y'],
+"    \     [':+', ':x', ':y']]], 1], 2])
+"
+# Execute(Define):
+#   " (define foo (lambda (x) (+ x 1)))
+#   call vlisp#Eval([':define', ':foo', [':lambda', [':x'], [':+', ':x', 1]]])
+#   " (foo 2) => 3
+#   AssertEqual 3, vlisp#Eval([':foo', 2])
+#
+# Execute(Test EvalMultiple):
+#   let result = vlisp#EvalMultiple(
+#     \ [
+#     \   [':define', ':foo', [':lambda', [':x'], [':+', ':x', 1]]],
+#     \   [':foo', 1]
+#     \ ]
+#     \ )
+#
+#   AssertEqual 2, result
+#
+# Execute(Test LoadScript):
+#   let text = '
+#   \(define foo (lambda (x) (+ 1 x)))
+#   \
+#   \(foo 1)'
+#
+#   AssertEqual 2, vlisp#LoadScript(text)
 
-Execute(Eval should call list functions):
-  " (printf 'Hello %s' 'world') => 'Hello wolrd'
-  AssertEqual 'Hello world', vlisp#Eval([function('printf'), 'Hello %s', 'world'])
-
-Execute(Eval native lambda):
-  " This has no lisp syntax parallel but ensure that VimL
-  " lambda are treated as normal functions. Is more
-  " like an implication of the above test
-  AssertEqual 2, vlisp#Eval([{n->n*2}, 1])
-
-Execute(Eval if):
-  " (if (> 1 0) 'one' 'zero') => 'one'
-  AssertEqual 'one', vlisp#Eval([':if', [':>', 1, 0], 'one', 'zero'])
-
-Execute(Sum values):
-  " (+ 1 2 3 4) => 10
-  AssertEqual 10, vlisp#Eval([':+', 1, 2, 3, 4])
-
-Execute(Call lambda):
-  " Define and call a lambda
-  " ((lambda (a) (+ 1 a)) 1) => 1
-  AssertEqual 2, vlisp#Eval([[':lambda', [':a'], [':+', 1, ':a']], 1])
-
-Execute(Call lazy):
-  " Define and call a lambda
-  " ((lambda (a) (+ 1 a)) 1) => 1
-  AssertEqual 2, vlisp#Eval([[':lazy', [':a'], [':+', 1, ':a']], 1])
-
-Execute(Eval nested list must not halt):
-  " Define and call a lambda
-  " ((lambda (a) (+ 1 a)) 1) => 1
-  AssertEqual [[1], 2], vlisp#Eval([[1], 2])
-
-Execute(Call nested lambda):
-  " (((lambda (x) (lambda (y) (+ x y))) 1) 2)
-  AssertEqual 3, vlisp#Eval(
-    \[[
-    \ [':lambda', [':x'],
-    \   [':lambda', [':y'],
-    \     [':+', ':x', ':y']]], 1], 2])
-
-Execute(Define):
-  " (define foo (lambda (x) (+ x 1)))
-  call vlisp#Eval([':define', ':foo', [':lambda', [':x'], [':+', ':x', 1]]])
-  " (foo 2) => 3
-  AssertEqual 3, vlisp#Eval([':foo', 2])
-
-Execute(Test EvalMultiple):
-  let result = vlisp#EvalMultiple(
-    \ [
-    \   [':define', ':foo', [':lambda', [':x'], [':+', ':x', 1]]],
-    \   [':foo', 1]
-    \ ]
-    \ )
-
-  AssertEqual 2, result
-
-Execute(Test LoadScript):
+Execute(Test recursivity):
   let text = '
-  \(define foo (lambda (x) (+ 1 x)))
+  \(defrec rec
+  \  (lambda (n)
+  \    rec))
   \
-  \(foo 1)'
+  \(rec 1)
+  \'
 
-  AssertEqual 2, vlisp#LoadScript(text)
+  call vlisp#Reset()
+  AssertEqual 1, vlisp#LoadScript(text)
