@@ -121,11 +121,10 @@ function s:defrec(sym, body) abort
 endfunc
 
 function s:echo(msg) abort
-  echo a:msg
+  echo s:eval(a:msg)
 endfunc
 
 function s:reduce(fn, args) abort
-  echom 'reduce args '.string(a:args)
   let acc = a:args[0]
   if len(a:args) > 1
     for item in a:args[1:]
@@ -133,6 +132,15 @@ function s:reduce(fn, args) abort
     endfor
   endif
   return acc
+endfunc
+
+function s:do(...) abort
+  if len(a:000) > 1
+    for expr in a:000[:-2]
+      call s:eval(expr)
+    endfor
+  endif
+  return s:eval(a:000[-1])
 endfunc
 
 " This is the global scope
@@ -149,6 +157,7 @@ let s:global_scope = {
   \ ':-': {... -> s:reduce({acc, arg -> s:eval(acc) - s:eval(arg)}, a:000)},
   \ ':*': {... -> s:reduce({acc, arg -> s:eval(acc) * s:eval(arg)}, a:000)},
   \ ':/': {... -> s:reduce({acc, arg -> s:eval(arg) / s:eval(acc)}, a:000)},
+  \ ':do': function('s:do'),
   \ ':lambda': function('s:def_lambda'),
   \ ':lazy': function('s:def_lazy'),
   \ ':define': function('s:define'),
@@ -202,7 +211,6 @@ endfunc
 
 function s:call_lambda(lambda, args) abort
   let args = s:build_args_strict(a:lambda.args, a:args)
-  echom 'call_lambda args '.string(args)
   call s:push_scope(a:lambda.scope)
   call s:push_scope(args)
   let result = s:eval(a:lambda.body)
@@ -278,7 +286,8 @@ function vlisp#LoadFile(file) abort
 endfunc
 
 function vlisp#LoadScript(string) abort
-  return vlisp#EvalMultiple(parser#Parse(lex#All(a:string)))
+  let tree = parser#Parse(lex#All(a:string))
+  return vlisp#EvalMultiple(tree)
 endfunc
 
 function vlisp#Reset() abort
