@@ -1,77 +1,77 @@
-#Execute(Test ReadAtom):
-#  let result = lex#ReadAtom('foo', 0, 1)
-#  AssertEqual ':foo', result.value
-#  AssertEqual 0, result.startpos
-#  AssertEqual 3, result.endpos
-#
-#  " Some common atom in Lisp
-#  AssertEqual ':foo->bar', lex#ReadAtom('foo->bar', 0, 1).value
-#  AssertEqual ':predicate?', lex#ReadAtom('predicate?', 0, 1).value
-#  AssertEqual ':sideeffect!', lex#ReadAtom('sideeffect!', 0, 1).value
-#  AssertEqual ':+', lex#ReadAtom('+', 0, 1).value
-#  AssertEqual ':*', lex#ReadAtom('*', 0, 1).value
-#  AssertEqual ':<', lex#ReadAtom('<', 0, 1).value
-#
-#"" !I use => to mean 'reduces to' in the following comments and
-#"" also use the expected syntax in the comments to elude what
-#"" the expansions whould be before parsino
-#Execute(Test Lex Simple):
-#  " 'hello' => 'hello'
-#  AssertEqual 'int', lex#Lex('1', 0, 0).type
-#  AssertEqual 'float', lex#Lex('1.0', 0, 0).type
-#  AssertEqual 'string', lex#Lex('"foo"', 0, 0).type
-#  AssertEqual 'sym', lex#Lex('foo', 0, 0).type
-#  AssertEqual 'LP', lex#Lex('(', 0, 0).type
-#  AssertEqual 'RP', lex#Lex(')', 0, 0).type
-#
-#  AssertEqual '"hello world"', lex#Lex('"hello world"', 0, 0).value
-#
-#Execute(Test ReadString):
-#  AssertEqual '"foo\""', lex#ReadString('"foo\""', 0, 0).value
-#  AssertEqual '"hello world"', lex#ReadString('"hello world"', 0, 0).value
-#
-#Execute(Test Lex list):
-#  " 'hello' => 'hello'
-#  let input = '(foo bar)'
-#  let result = lex#Lex(input, 0, 0)
-#  AssertEqual 'LP', result.type
-#  AssertEqual 1, result.endpos
-#
-#  let result = lex#Lex(input, result.endpos, result.line)
-#  AssertEqual 'sym', result.type
-#  AssertEqual ':foo', result.value
-#  AssertEqual 4, result.endpos
-#
-#  let result = lex#Lex(input, result.endpos, result.line)
-#  AssertEqual 'sym', result.type
-#  AssertEqual ':bar', result.value
-#
-#  let result = lex#Lex(input, result.endpos, result.line)
-#  AssertEqual 'RP', result.type
-#
-#Execute(Test line breaking counter):
-#  " 'hello' => 'hello'
-#  let input = "(foo\nbar)"
-#  let result = lex#Lex(input, 0, 1)
-#  AssertEqual 'LP', result.type
-#
-#  let result = lex#Lex(input, result.endpos, result.line)
-#  AssertEqual 'sym', result.type
-#  AssertEqual ':foo', result.value
-#
-#  let result = lex#Lex(input, result.endpos, result.line)
-#  AssertEqual 'sym', result.type
-#  AssertEqual ':bar', result.value
-#  AssertEqual 2, result.line
-#
-#  let result = lex#Lex(input, result.endpos, result.line)
-#
-#Execute(Tet lex#All):
-#  " 'hello' => 'hello'
-#  let tokens_ = lex#All('(foo 2 (tar 1))')
-#  let tokens = map(tokens_, {k, v -> v.value})
-#  AssertEqual ['(', ':foo', 2, '(', ':tar', 1, ')', ')'], tokens
-#
+Execute(Test ReadAtom):
+  let result = lex#ReadAtom('foo', 0, 1)
+  AssertEqual ':foo', result.value
+  AssertEqual 0, result.startpos
+  AssertEqual 3, result.endpos
+
+  " Some common atom in Lisp
+  AssertEqual ':foo->bar', lex#ReadAtom('foo->bar', 0, 1).value
+  AssertEqual ':predicate?', lex#ReadAtom('predicate?', 0, 1).value
+  AssertEqual ':sideeffect!', lex#ReadAtom('sideeffect!', 0, 1).value
+  AssertEqual ':+', lex#ReadAtom('+', 0, 1).value
+  AssertEqual ':*', lex#ReadAtom('*', 0, 1).value
+  AssertEqual ':<', lex#ReadAtom('<', 0, 1).value
+
+"" !I use => to mean 'reduces to' in the following comments and
+"" also use the expected syntax in the comments to elude what
+"" the expansions whould be before parsino
+Execute(Test Lex Simple):
+  " 'hello' => 'hello'
+  AssertEqual 'int', lex#Lex('1', 0, 0).type
+  AssertEqual 'float', lex#Lex('1.0', 0, 0).type
+  AssertEqual 'string', lex#Lex('"foo"', 0, 0).type
+  AssertEqual 'sym', lex#Lex('foo', 0, 0).type
+  AssertEqual 'LP', lex#Lex('(', 0, 0).type
+  AssertEqual 'RP', lex#Lex(')', 0, 0).type
+
+  AssertEqual '"hello world"', lex#Lex('"hello world"', 0, 0).value
+
+Execute(Test ReadString):
+  AssertEqual '"foo\""', lex#ReadString('"foo\""', 0, 0).value
+  AssertEqual '"hello world"', lex#ReadString('"hello world"', 0, 0).value
+
+Execute(Test Lex list):
+  " 'hello' => 'hello'
+  let input = '(foo bar)'
+  let result = lex#Lex(input, 0, 0)
+  AssertEqual 'LP', result.type
+  AssertEqual 1, result.endpos
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'sym', result.type
+  AssertEqual ':foo', result.value
+  AssertEqual 4, result.endpos
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'sym', result.type
+  AssertEqual ':bar', result.value
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'RP', result.type
+
+Execute(Test line breaking counter):
+  " 'hello' => 'hello'
+  let input = "(foo\nbar)"
+  let result = lex#Lex(input, 0, 1)
+  AssertEqual 'LP', result.type
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'sym', result.type
+  AssertEqual ':foo', result.value
+
+  let result = lex#Lex(input, result.endpos, result.line)
+  AssertEqual 'sym', result.type
+  AssertEqual ':bar', result.value
+  AssertEqual 2, result.line
+
+  let result = lex#Lex(input, result.endpos, result.line)
+
+Execute(Tet lex#All):
+  " 'hello' => 'hello'
+  let tokens_ = lex#All('(foo 2 (tar 1))')
+  let tokens = map(tokens_, {k, v -> v.value})
+  AssertEqual ['(', ':foo', 2, '(', ':tar', 1, ')', ')'], tokens
+
 Execute(Tet lex#All hello world):
   let tokens = lex#All('(echo "hello world")')
   let tokens = map(tokens, {k, v -> v.value})

@@ -51,12 +51,12 @@ function s:in(item, list) abort
   return index(a:list, a:item) != -1
 endfunc
 
-function s:push_scope(item) abort
-  call add(s:scopes, a:item)
+function s:push_stackframe(item) abort
+  call add(s:call_stack, a:item)
 endfunc
 
-function s:pop_scope() abort
-  return remove(s:scopes, -1)
+function s:pop_stackframe() abort
+  return remove(s:call_stack, -1)
 endfunc
 
 function s:free_vars(expr, bound_vars, free_vars) abort
@@ -110,14 +110,21 @@ function s:def_lazy(args, body) abort
 endfunc
 
 function s:define(sym, body) abort
-  call s:push_scope({ a:sym: s:eval(a:body) })
+  echom 'define '.string(s:global_scope_user)
+  if !s:is_defined(a:sym)
+    let s:global_scope_user[a:sym] = s:eval(a:body)
+  else
+    throw 'Alredy defined symbol '.a:sym
+  endif
 endfunc
 
 function s:defrec(sym, body) abort
-  call s:push_scope({ a:sym: 'RECURSIVE_DEFINITION_SENTINEL' })
-  let result = s:eval(a:body)
-  call s:pop_scope()
-  call s:push_scope({ a:sym: result })
+  if !s:is_defined(a:sym)
+    let s:global_scope_user[a:sym] = 'RECURSIVE_DEFINITION_SENTINEL'
+    let s:global_scope_user[a:sym] = s:eval(a:body)
+  else
+    throw 'Alredy defined symbol '.a:sym
+  endif
 endfunc
 
 function s:echo(msg) abort
@@ -143,7 +150,7 @@ function s:do(...) abort
   return s:eval(a:000[-1])
 endfunc
 
-" This is the global scope
+" This is the buitins, it's imutable
 let s:global_scope = {
   \ ':=': {a, b -> s:eval(a) == s:eval(b)},
   \ ':!=': {a, b -> s:eval(a) != s:eval(b)},
@@ -165,11 +172,11 @@ let s:global_scope = {
   \ ':echo': function('s:echo'),
   \ }
 
-" This is the local scope stacked, the inner scope goes first
-" and outer scope goes last. A scope is a dictionary where symbols
-" point to values. Scopes are stacked in the lookup order, i.e, inner
-" scopes goes first.
-let s:scopes = []
+" User defines
+let s:global_scope_user = {}
+
+" The call stac
+let s:call_stack = []
 
 " ((lambda (x) ...) 1) => { x: 1 }
 " Build args scope, to be pushed to s:scopes
@@ -197,11 +204,11 @@ endfunc
 
 function s:call_lazy(lambda, args) abort
   let args = s:build_args_lazy(a:lambda.args, a:args)
-  call s:push_scope(a:lambda.scope)
-  call s:push_scope(args)
+  call s:push_stackframe(a:lambda.scope)
+  call s:push_stackframe(args)
   let result = s:eval(a:lambda.body)
-  call s:pop_scope()
-  call s:pop_scope()
+  call s:pop_stackframe()
+  call s:pop_stackframe()
   return result
 endfunc
 
@@ -211,11 +218,11 @@ endfunc
 
 function s:call_lambda(lambda, args) abort
   let args = s:build_args_strict(a:lambda.args, a:args)
-  call s:push_scope(a:lambda.scope)
-  call s:push_scope(args)
+  call s:push_stackframe(a:lambda.scope)
+  call s:push_stackframe(args)
   let result = s:eval(a:lambda.body)
-  call s:pop_scope()
-  call s:pop_scope()
+  call s:pop_stackframe()
+  call s:pop_stackframe()
   return result
 endfunc
 
@@ -240,18 +247,30 @@ function s:is_list(expr) abort
 endfunc
 
 function s:lookup(sym) abort
-  for scope in s:scopes
-    if has_key(scope, a:sym)
-      let result = scope[a:sym]
-      return result
+  for frame in s:call_stack
+    if has_key(frame, a:sym)
+      return frame[a:sym]
     endif
   endfor
+
+  if has_key(s:global_scope_user, a:sym)
+    return s:global_scope_user[a:sym]
+  endif
 
   if has_key(s:global_scope, a:sym)
     return s:global_scope[a:sym]
   endif
 
   throw 'Undefined symbol '.a:sym
+endfunc
+
+function s:is_defined(sym) abort
+  try
+    call s:lookup(a:sym)
+    return v:false
+  catch /^Undefined symbol/
+    return v:true
+  endtry
 endfunc
 
 function s:is_redex(car) abort
@@ -291,7 +310,8 @@ function vlisp#LoadScript(string) abort
 endfunc
 
 function vlisp#Reset() abort
-  let s:scopes = []
+  let s:call_stack = []
+  let s:global_scope_user = {}
   let s:deep = 0
 endfunc
 
