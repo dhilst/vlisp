@@ -1,4 +1,6 @@
-# [What if vim users can vlisp like emacs users can elisp?](https://twitter.com/geckones/status/1384979686334283793?s=20)
+# vlisp (will be renamed to vimlisp soon) [![Build Status](https://travis-ci.com/dhilst/vlisp.svg?branch=master)](https://travis-ci.com/dhilst/vlisp)
+
+[What if vim users can vlisp like emacs users can elisp?](https://twitter.com/geckones/status/1384979686334283793?s=20)
 
 I always loved elisp and working with elisp and VimL is so cumbersome. I would like to
 have vlisp like emacs user have elisp so I can use FP on my configuration.
