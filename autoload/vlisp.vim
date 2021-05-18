@@ -52,11 +52,14 @@ function s:in(item, list) abort
 endfunc
 
 function s:push_stackframe(item) abort
+  if len(a:item) == 0
+    return
+  endif
   call add(s:call_stack, a:item)
 endfunc
 
 function s:pop_stackframe() abort
-  return remove(s:call_stack, -1)
+  let element = remove(s:call_stack, -1)
 endfunc
 
 function s:free_vars(expr, bound_vars, free_vars) abort
@@ -65,7 +68,7 @@ function s:free_vars(expr, bound_vars, free_vars) abort
 
     " nil, just return
     if alen == 0
-      return;
+      return
 
     " unary list, lookup inside it
     elseif alen == 1
@@ -97,7 +100,7 @@ function s:def_lambda(args, body) abort
   let lambda = {'type': 'lambda', 'args': a:args, 'body': a:body, 'scope': free_vars }
   for [k, v] in items(free_vars)
     if v ==# 'RECURSIVE_DEFINITION_SENTINEL'
-      let free_vars[k] = lambda
+      unlet free_vars[k]
     endif
   endfor
   return lambda
@@ -130,8 +133,13 @@ function s:echo(msg) abort
   echo s:eval(a:msg)
 endfunc
 
+function s:trace(msg, arg) abort
+  let result = s:eval(a:arg)
+  return result
+endfunc
+
 function s:reduce(fn, args) abort
-  let acc = a:args[0]
+  let acc = s:eval(a:args[0])
   if len(a:args) > 1
     for item in a:args[1:]
       let acc = a:fn(acc, s:eval(item))
@@ -169,6 +177,7 @@ let s:global_scope = {
   \ ':define': function('s:define'),
   \ ':defrec': function('s:defrec'),
   \ ':echo': function('s:echo'),
+  \ ':trace': function('s:trace'),
   \ }
 
 " User defines
@@ -179,7 +188,7 @@ let s:call_stack = []
 
 " ((lambda (x) ...) 1) => { x: 1 }
 " Build args scope, to be pushed to s:scopes
-function s:build_args_lazy(argnames, argvalues)
+function s:build_args(argnames, argvalues)
   let args = {}
   let i = 0
   let max = len(a:argvalues)
@@ -190,19 +199,8 @@ function s:build_args_lazy(argnames, argvalues)
   return args
 endfunc
 
-function s:build_args_strict(argnames, argvalues)
-  let args = {}
-  let i = 0
-  let max = len(a:argvalues)
-  while i < max
-    let args[a:argnames[i]] = s:eval(a:argvalues[i])
-    let i += 1
-  endwhile
-  return args
-endfunc
-
 function s:call_lazy(lambda, args) abort
-  let args = s:build_args_lazy(a:lambda.args, a:args)
+  let args = s:build_args(a:lambda.args, a:args)
   call s:push_stackframe(a:lambda.scope)
   call s:push_stackframe(args)
   let result = s:eval(a:lambda.body)
@@ -216,12 +214,15 @@ function s:call_func(Func, args) abort
 endfunc
 
 function s:call_lambda(lambda, args) abort
-  let args = s:build_args_strict(a:lambda.args, a:args)
+  let eargs = map(a:args, {_, x -> s:eval(x)})
+  echom 'call lambda '.string(eargs)
+  let args = s:build_args(a:lambda.args, eargs)
   call s:push_stackframe(a:lambda.scope)
   call s:push_stackframe(args)
   let result = s:eval(a:lambda.body)
   call s:pop_stackframe()
   call s:pop_stackframe()
+  echom 'return from lambda '.result
   return result
 endfunc
 
@@ -246,9 +247,10 @@ function s:is_list(expr) abort
 endfunc
 
 function s:lookup(sym) abort
-  for frame in s:call_stack
+  for frame in reverse(s:call_stack)
     if has_key(frame, a:sym)
-      return frame[a:sym]
+      let result = frame[a:sym]
+      return result
     endif
   endfor
 
