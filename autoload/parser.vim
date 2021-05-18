@@ -37,8 +37,3 @@ function parser#Parse(tokens) abort
   let _buffer .= ']'
   return eval(_buffer)
 endfunc
-
-
-function parser#ParseAndEval(text) abort
-  return vlisp#Eval(parser#Parse(lex#All(a:text)))
-endfunc

@@ -3,9 +3,6 @@ Execute(Test parse):
   AssertEqual [':foo'], parser#Parse(lex#All('foo'))
   AssertEqual [[]], parser#Parse(lex#All('()'))
   AssertEqual [[':foo']], parser#Parse(lex#All('(foo)'))
-  AssertEqual [[':foo'], [':bar']], parser#Parse(lex#All('(foo (bar))'))
-  AssertEqual ['"hello world"'], parser#Parse(lex#All('"hello world"'))
-  AssertEqual [[':echo'], 'hello world'], parser#Parse(lex#All('(echo "hello world")'))
-
-Execute(Test parse and eval):
-  AssertEqual 3, parser#ParseAndEval('((lambda (x) (+ x 2)) 1)')
+  AssertEqual [[':foo', [':bar']]], parser#Parse(lex#All('(foo (bar))'))
+  AssertEqual ['hello world'], parser#Parse(lex#All('"hello world"'))
+  AssertEqual [[':echo', 'hello world']], parser#Parse(lex#All('(echo "hello world")'))
