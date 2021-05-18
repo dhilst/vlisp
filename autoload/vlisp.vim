@@ -110,7 +110,6 @@ function s:def_lazy(args, body) abort
 endfunc
 
 function s:define(sym, body) abort
-  echom 'define '.string(s:global_scope_user)
   if !s:is_defined(a:sym)
     let s:global_scope_user[a:sym] = s:eval(a:body)
   else
@@ -267,9 +266,9 @@ endfunc
 function s:is_defined(sym) abort
   try
     call s:lookup(a:sym)
-    return v:false
-  catch /^Undefined symbol/
     return v:true
+  catch /^Undefined symbol/
+    return v:false
   endtry
 endfunc
 

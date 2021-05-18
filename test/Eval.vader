@@ -79,16 +79,16 @@ Execute(Test LoadScript):
 
   AssertEqual 2, vlisp#LoadScript(text)
 
-#Execute(Test recursivity):
-#  let text = '
-#  \(defrec fact
-#  \  (lambda (n)
-#  \    (do
-#  \      (echo n)
-#  \      (if (= n 0) 1 (* n (fact (- n 1)))))))
-#  \
-#  \(fact 5)
-#  \'
-#
-#  call vlisp#Reset()
-#  AssertEqual 1, vlisp#LoadScript(text)
+Execute(Test recursivity):
+  let text = '
+  \(defrec fact
+  \  (lambda (n)
+  \    (do
+  \      (echo n)
+  \      (if (= n 0) 1 (* n (fact (- n 1)))))))
+  \
+  \(fact 5)
+  \'
+
+  call vlisp#Reset()
+  AssertEqual 1, vlisp#LoadScript(text)
