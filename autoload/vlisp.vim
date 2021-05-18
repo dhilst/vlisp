@@ -33,6 +33,7 @@ endfunc
 let s:deep = 0 " how nested we are in the expressions
                " used only for debugging
 function s:eval(expr) abort
+  echom repeat('  ', s:deep).'eval '.string(a:expr)
   let s:deep += 1
   let Result = 0
   if s:is_list(a:expr)
@@ -42,6 +43,7 @@ function s:eval(expr) abort
   endif
 
   let s:deep -= 1
+  echom repeat('  ', s:deep).'===> '.string(Result)
   return Result
 endfunc
 " Search for item in list, item is a sym and list a list of args
@@ -55,11 +57,13 @@ function s:push_stackframe(item) abort
   if len(a:item) == 0
     return
   endif
-  call add(s:call_stack, a:item)
+  call insert(s:call_stack, a:item, 0)
 endfunc
 
 function s:pop_stackframe() abort
-  let element = remove(s:call_stack, -1)
+  if len(s:call_stack) > 0
+    call remove(s:call_stack, 0)
+  endif
 endfunc
 
 function s:free_vars(expr, bound_vars, free_vars) abort
@@ -135,6 +139,7 @@ endfunc
 
 function s:trace(msg, arg) abort
   let result = s:eval(a:arg)
+  echom 'Trace '.a:msg.' => '.string(result)
   return result
 endfunc
 
@@ -215,14 +220,12 @@ endfunc
 
 function s:call_lambda(lambda, args) abort
   let eargs = map(a:args, {_, x -> s:eval(x)})
-  echom 'call lambda '.string(eargs)
   let args = s:build_args(a:lambda.args, eargs)
   call s:push_stackframe(a:lambda.scope)
   call s:push_stackframe(args)
   let result = s:eval(a:lambda.body)
   call s:pop_stackframe()
   call s:pop_stackframe()
-  echom 'return from lambda '.result
   return result
 endfunc
 
@@ -247,7 +250,7 @@ function s:is_list(expr) abort
 endfunc
 
 function s:lookup(sym) abort
-  for frame in reverse(s:call_stack)
+  for frame in s:call_stack
     if has_key(frame, a:sym)
       let result = frame[a:sym]
       return result
@@ -302,7 +305,7 @@ function s:readallines(file) abort
 endfunc
 
 function vlisp#LoadFile(file) abort
-  return vlisp#LoadScript(s:readallines(a:file)))
+  return vlisp#LoadScript(s:readallines(a:file))
 endfunc
 
 function vlisp#LoadScript(string) abort
