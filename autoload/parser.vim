@@ -1,15 +1,3 @@
-function s:pop(stack) abort
-  return remove(a:stack, -1)
-endfunc
-
-function s:push(item, stack) abort
-  call add(a:stack, a:item)
-endfunc
-
-function s:top(stack) abort
-  return stack[-1]
-endfunc
-
 function s:in(el, list) abort
   return index(a:list, a:el) != -1
 endfunc
