@@ -100,9 +100,8 @@ function lex#ReadString(input, startpos, line)
       throw 'syntax error, EOF while expecting "'
     endif
 
-
     if a:input[i] ==# '"' && !escaping
-      let result = a:input[start:i-1]
+      let result = a:input[start : i-1]
       return {
             \ 'type': 'string',
             \ 'value': result,
@@ -111,7 +110,7 @@ function lex#ReadString(input, startpos, line)
             \ 'line': a:line,
             \ }
     endif
-    let scaping = a:input[i] ==# '\'
+    let escaping = a:input[i] ==# '\'
     let i += 1
   endwhile
 endfunc

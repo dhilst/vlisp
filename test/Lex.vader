@@ -24,11 +24,11 @@ Execute(Test Lex Simple):
   AssertEqual 'LP', lex#Lex('(', 0, 0).type
   AssertEqual 'RP', lex#Lex(')', 0, 0).type
 
-  AssertEqual '"hello world"', lex#Lex('"hello world"', 0, 0).value
+  AssertEqual 'hello world', lex#Lex('"hello world"', 0, 0).value
 
 Execute(Test ReadString):
-  AssertEqual '"foo\""', lex#ReadString('"foo\""', 0, 0).value
-  AssertEqual '"hello world"', lex#ReadString('"hello world"', 0, 0).value
+  AssertEqual 'foo\"', lex#ReadString('"foo\""', 0, 0).value
+  AssertEqual 'hello world', lex#ReadString('"hello world"', 0, 0).value
 
 Execute(Test Lex list):
   " 'hello' => 'hello'
@@ -70,9 +70,10 @@ Execute(Tet lex#All):
   " 'hello' => 'hello'
   let tokens_ = lex#All('(foo 2 (tar 1))')
   let tokens = map(tokens_, {k, v -> v.value})
+  echom '====> '.string(tokens)
   AssertEqual ['(', ':foo', 2, '(', ':tar', 1, ')', ')'], tokens
 
 Execute(Tet lex#All hello world):
   let tokens = lex#All('(echo "hello world")')
   let tokens = map(tokens, {k, v -> v.value})
-  AssertEqual ['(', ':echo', '"hello world"', ')'], tokens
+  AssertEqual ['(', ':echo', 'hello world', ')'], tokens
