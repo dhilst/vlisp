@@ -151,7 +151,7 @@ function s:reduce(fn, args) abort
   return acc
 endfunc
 
-function s:do(...) abort
+function s:begin(...) abort
   if len(a:000) > 1
     for expr in a:000[:-2]
       call s:eval(expr)
@@ -174,7 +174,7 @@ let s:global_scope = {
   \ ':-': {... -> s:reduce({acc, arg -> s:eval(acc) - s:eval(arg)}, a:000)},
   \ ':*': {... -> s:reduce({acc, arg -> s:eval(acc) * s:eval(arg)}, a:000)},
   \ ':/': {... -> s:reduce({acc, arg -> s:eval(arg) / s:eval(acc)}, a:000)},
-  \ ':do': function('s:do'),
+  \ ':begin': function('s:begin'),
   \ ':lambda': function('s:def_lambda'),
   \ ':lazy': function('s:def_lazy'),
   \ ':define': function('s:define'),
@@ -186,7 +186,7 @@ let s:global_scope = {
 " User defines
 let s:global_scope_user = {}
 
-" The call stac
+" The call stack
 let s:call_stack = []
 
 " ((lambda (x) ...) 1) => { x: 1 }
