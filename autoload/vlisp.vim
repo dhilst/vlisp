@@ -33,7 +33,6 @@ endfunc
 let s:deep = 0 " how nested we are in the expressions
                " used only for debugging
 function s:eval(expr) abort
-  echom repeat('  ', s:deep).'eval '.string(a:expr)
   let s:deep += 1
   let Result = 0
   if s:is_list(a:expr)
@@ -43,7 +42,6 @@ function s:eval(expr) abort
   endif
 
   let s:deep -= 1
-  echom repeat('  ', s:deep).'===> '.string(Result)
   return Result
 endfunc
 " Search for item in list, item is a sym and list a list of args
