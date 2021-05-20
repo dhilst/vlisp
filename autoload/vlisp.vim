@@ -263,6 +263,20 @@ function s:lookup(sym) abort
     return s:global_scope[a:sym]
   endif
 
+  let symWithoutColon = a:sym[1:]
+  try
+    return function(symWithoutColon)
+  catch /E700: Unknown function/
+  catch /E129: Function name required/
+  endtry
+
+  if exists(symWithoutColon)
+    try
+      return eval(symWithoutColon)
+    catch
+    endtry
+  endif
+
   throw 'Undefined symbol '.a:sym
 endfunc
 

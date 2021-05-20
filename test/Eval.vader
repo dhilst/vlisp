@@ -92,3 +92,13 @@ Execute(Test recursivity):
 
   call vlisp#Reset()
   AssertEqual 120, vlisp#LoadScript(text)
+
+Execute(Test vim function lookup):
+  " Printf is a native VimL function
+  AssertEqual "Hello world", vlisp#LoadScript('(printf "Hello %s" "world")')
+
+Execute(Test vim variable lookup):
+  " Printf is a native VimL function
+  let g:foo = 1
+  AssertEqual 1, vlisp#LoadScript('g:foo')
+  unlet g:foo
