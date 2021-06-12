@@ -102,3 +102,7 @@ Execute(Test vim variable lookup):
   let g:foo = 1
   AssertEqual 1, vlisp#LoadScript('g:foo')
   unlet g:foo
+
+Execute(Test literal as function):
+  " @FIXME This must raise an error
+  AssertEqual [1], vlisp#LoadScript('(1)')

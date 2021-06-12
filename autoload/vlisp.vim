@@ -168,7 +168,7 @@ let s:global_scope = {
   \ ':>=': {a, b -> s:eval(a) < s:eval(b)},
   \ ':<': {a, b -> s:eval(a) < s:eval(b)},
   \ ':<=': {a, b -> s:eval(a) < s:eval(b)},
-  \ ':if': {c, a, b ->  s:eval(c) ? s:eval(a) : s:eval(b) },
+  \ ':if': {c, a, b -> s:eval(c) ? s:eval(a) : s:eval(b) },
   \ ':eval': function('s:eval'),
   \ ':+': {... -> s:reduce({acc, arg -> s:eval(acc) + s:eval(arg)}, a:000)},
   \ ':-': {... -> s:reduce({acc, arg -> s:eval(acc) - s:eval(arg)}, a:000)},
