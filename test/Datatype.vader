@@ -1,0 +1,31 @@
+#" !I use => to mean 'reduces to' in the following comments and
+#" also use the expected syntax in the comments to elude what
+#" the expansions whould be before parsino
+Execute(Test vlisp#dt):
+  " A maybe datatype
+  let maybe = vlisp#dt#DT({}, 'just a', 'nothing')
+  let foo = maybe.just(1)
+  AssertEqual '1!', foo.match(
+        \'just', {a -> a."!"},
+        \'nothing', {-> 'nothing'})
+
+  let either = vlisp#dt#DT({}, 'left a', 'right b')
+  let foo = either.right(1)
+  let bar = either.left('oops')
+  AssertEqual 2, foo.match(
+      \'left', {a -> printf('oops %s!', a)},
+      \'right', {a -> a + 1})
+
+  let pair = vlisp#dt#DT({}, 'pair a b')
+  let p = pair.pair(1, 2)
+  AssertEqual 3, p.match('pair', {a, b -> a + b})
+
+  let list = vlisp#dt#DT({}, 'nil', 'cons a tail')
+  let myList = list.cons(1, list.cons(2, list.cons(3, list.nil())))
+  function! Sumlist(list) abort
+    return a:list.match(
+      \'nil', {-> 0},
+      \'cons', {a, tail -> a + Sumlist(tail)}
+      \)
+  endfunction
+  AssertEqual 6, Sumlist(myList)

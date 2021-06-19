@@ -1,0 +1,11 @@
+Execute(Test list functions):
+  AssertEqual [[1,'a'], [2, 'b']], vlisp#fp#Zip([1,2], ['a', 'b', 'c'])
+
+  let a = [1,2,3,4]
+  AssertEqual [1,3], vlisp#fp#Sublist(a, 0, 2)
+
+  AssertEqual [[1,2], [3,4]], vlisp#fp#ToPairs(a)
+
+Execute(Test maybe):
+  let foo = vlisp#fp#maybe.just(1)
+  echo foo
